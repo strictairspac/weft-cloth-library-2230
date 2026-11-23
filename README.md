@@ -35,6 +35,24 @@ docker compose up -d --build --wait
 
 `SEED_DEMO=true` 启动时生成账号与一个业务样例。工作台新建档案会预填样例。可编辑表单中的数值、文本和结构化 JSON 后提交。业务说明中的原始文件是上游示例，演示数据通过表单录入。角色枚举位于后端 `src/constants/workflow.py` 与前端 `src/constants/workflow.js`。执行状态枚举也位于这两个文件，使用于队列、列表和执行详情。证据校验码是报告 JSON 按 UTF-8、键排序且省略多余空格序列化后的 SHA-256。
 
+## 裁切组同步接口
+
+复核员签署仓位配额单后，系统在**同一事务**内把可发单据写入同步流：签署与开放给裁切组同生同灭，重复签署返回 409 且不会重复发出。暂停发单的报告（版本冲突、库存差异）即使签署也不进入同步流。
+
+| 接口 | 权限 | 说明 |
+|---|---|---|
+| `GET /api/dispatch/pull?cursor=N&limit=M` | 登录用户 | 返回位点大于 `N` 的已签可发单据（升序，上限 500 条/页），附 `next_cursor` 续拉位置与当前水位 `horizon` |
+| `GET /api/dispatch/rebuild` | 登录用户 | 返回同一时点的全量已签可发单据与对应续拉位置 `cursor` |
+| `POST /api/dispatch/cleanup` | 复核员 | 清理位点不超过 `upto` 的同步记录，请求体 `{"upto": N}` |
+
+同步位点由签署事务内的计数器按提交顺序分配，因此并发签单时从 `next_cursor` 续拉不会漏单。重建返回的全量与 `cursor` 对应同一时点，重建期间新签的单据用该 `cursor` 续拉即可取回，不重不漏。清理后若 `cursor` 小于已清理水位，`pull` 返回 410，提示调用 `rebuild` 重建全量后从新位置续拉；`cursor` 超过当前水位返回 409。每条同步记录携带配额单全文、签署人、签署时间与证据校验码，裁切组可离线核对。
+
+同步接口测试（需要可连接 127.0.0.1:17800 的 PostgreSQL 16，自动建删 `workflow_test` 库）：
+
+```sh
+cd backend && python -m pytest tests/test_dispatch.py -q
+```
+
 ## 工程结构
 
 | 服务 | 实现 |

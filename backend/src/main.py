@@ -10,11 +10,14 @@ from src.config.settings import engine
 from src.middlewares.request import limit_body, request_headers
 from src.models.tables import schema
 from src.routes.workflow import router
+from src.services import dispatch
 
 
 @asynccontextmanager
 async def lifespan(app):
     schema.create_all(engine)
+    with engine.begin() as conn:
+        dispatch.ensure_state(conn)
     if os.getenv('SEED_DEMO', 'true').lower() == 'true':
         try:
             seed()

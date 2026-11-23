@@ -6,7 +6,8 @@ DRIVER = os.getenv('DB_DRIVER', 'postgresql+psycopg')
 IS_MYSQL = DRIVER.startswith('mysql')
 URL = URL.create(DRIVER, username=os.getenv('DB_USER', 'app'),
                  password=os.getenv('DB_PASSWORD', 'local-db-demo'),
-                 host=os.getenv('DB_HOST', 'db'), database=os.getenv('DB_NAME', 'workflow'),
+                 host=os.getenv('DB_HOST', 'db'), port=int(os.getenv('DB_PORT') or 0) or None,
+                 database=os.getenv('DB_NAME', 'workflow'),
                  query={'charset': 'utf8mb4'} if IS_MYSQL else {})
 engine = create_engine(URL, pool_pre_ping=True)
 cache = Redis.from_url(os.getenv('REDIS_URL', 'redis://redis:6379/0'), socket_timeout=3)

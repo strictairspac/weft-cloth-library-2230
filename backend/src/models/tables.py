@@ -1,5 +1,5 @@
-from sqlalchemy import (JSON, Column, ForeignKey, Integer, MetaData, String,
-                        Table, Text)
+from sqlalchemy import (JSON, BigInteger, Column, ForeignKey, Integer,
+                        MetaData, String, Table, Text)
 
 schema = MetaData()
 users = Table('accounts', schema,
@@ -38,3 +38,17 @@ audit = Table('audit_events', schema,
     Column('action', String(32), nullable=False),
     Column('reference', String(50), nullable=False),
     Column('created_at', String(32), nullable=False))
+# Singleton row (id = 1): seq is the commit-ordered sync position shared by all
+# signed quota orders; cleaned_upto is the retention watermark for pull cursors.
+dispatch_state = Table('dispatch_sync_state', schema,
+    Column('id', Integer, primary_key=True),
+    Column('seq', BigInteger, nullable=False),
+    Column('cleaned_upto', BigInteger, nullable=False))
+dispatch_orders = Table('dispatch_orders', schema,
+    Column('sync_seq', BigInteger, primary_key=True),
+    Column('evidence_id', ForeignKey('business_evidence.id'), nullable=False, unique=True),
+    Column('run_id', Integer, nullable=False),
+    Column('digest', String(64), nullable=False),
+    Column('signed_by', String(40), nullable=False),
+    Column('signed_at', String(32), nullable=False),
+    Column('report', JSON, nullable=False))

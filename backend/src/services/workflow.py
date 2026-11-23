@@ -7,7 +7,7 @@ from sqlalchemy import and_, or_, select
 from src.config.settings import cache, engine
 from src.constants.workflow import Status
 from src.models.tables import audit, cases, evidence, runs
-from src.services import domain
+from src.services import dispatch, domain
 from src.utils.encoding import canonical
 from src.utils.time import utc_time
 
@@ -95,10 +95,14 @@ def review(identity, note, actor):
     if not note:
         raise HTTPException(422, '复核意见不能为空')
     with engine.begin() as conn:
-        found(conn, evidence, identity)
+        row = found(conn, evidence, identity)
+        signed_at = utc_time()
         count = conn.execute(evidence.update().where(evidence.c.id == identity, evidence.c.reviewed_at.is_(None))
-                            .values(review_note=note, reviewer=actor, reviewed_at=utc_time())).rowcount
+                            .values(review_note=note, reviewer=actor, reviewed_at=signed_at)).rowcount
         if count != 1:
             raise HTTPException(409, '该证据已经复核')
+        # Signing and opening to the cutting group commit or roll back together.
+        if dispatch.dispatchable(row['report']):
+            dispatch.publish(conn, row, actor, signed_at)
         log(conn, actor, 'review', identity)
         return found(conn, evidence, identity)

@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 
 from src.config.settings import cache, engine
 from src.controllers.workflow import download
 from src.models.tables import audit, cases, evidence, runs
-from src.schemas.workflow import CaseForm, LoginForm, ReviewForm
-from src.services import domain, workflow
+from src.schemas.workflow import CaseForm, CleanupForm, LoginForm, ReviewForm
+from src.services import dispatch, domain, workflow
 from src.services.security import current_user, login, operator, reviewer
 
 router = APIRouter()
@@ -62,6 +62,22 @@ def export_evidence(identity: int, _=Depends(current_user)):
 @router.post('/evidence/{identity}/review')
 def review_evidence(identity: int, form: ReviewForm, actor=Depends(reviewer)):
     return workflow.review(identity, form.note, actor)
+
+
+@router.get('/dispatch/pull')
+def pull_dispatch(cursor: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500),
+                  _=Depends(current_user)):
+    return dispatch.pull(cursor, limit)
+
+
+@router.get('/dispatch/rebuild')
+def rebuild_dispatch(_=Depends(current_user)):
+    return dispatch.rebuild()
+
+
+@router.post('/dispatch/cleanup')
+def cleanup_dispatch(form: CleanupForm, actor=Depends(reviewer)):
+    return dispatch.cleanup(form.upto, actor)
 
 
 @router.get('/audit')
