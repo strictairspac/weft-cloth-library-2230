@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&family=Noto+Sans+SC&display=swap');
+:root {
+  --title-font: "LXGW WenKai TC"; --body-font: "Noto Sans SC";
+  --paper: oklch(.982 .012 39); --sheet: oklch(.996 .005 39); --ink: oklch(.225 .032 39);
+  --soft: oklch(.938 .031 39); --line: oklch(.837 .036 39); --muted: oklch(.43 .047 39);
+  --accent: oklch(.455 .105 39); --accent-dark: oklch(.354 .105 39);
+  --hero: oklch(.305 .105 39); --hero-text: oklch(.979 .018 39);
+  --button-text: oklch(.984 .012 39); --radius: 0px; --rule: 2px;
+  --navigation: 12.8rem; --login-columns: 1.6fr 1fr;
+}
